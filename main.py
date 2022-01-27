@@ -1,6 +1,13 @@
+import glob
 from PIL import Image
 import face_recognition
 import os
+from collections import deque
+
+
+class PersonImage:
+    image = None
+    encoding = None
 
 
 if not os.path.exists('Persons'):
@@ -21,19 +28,46 @@ for i, photo in enumerate(photos):
         pil_image = Image.fromarray(face_image)
         pil_image.save(f'Persons/{i}_{j}.jpg')
 
-persons = os.listdir('Persons')
+persons = glob.glob('Persons/*.jpg')
 
-persons_encoding = []
-for person in persons:
-    image = face_recognition.load_image_file(f'Persons/{person}')
-    face_encoding = face_recognition.face_encodings(image)[0]
-    persons_encoding.append(face_encoding)
+person_images = deque()
 
 for person in persons:
-    image = face_recognition.load_image_file(f'Persons/{person}')
+    image = face_recognition.load_image_file(person)
+    person_image = PersonImage()
+    person_image.image = image
     face_encoding = face_recognition.face_encodings(image)[0]
-    distances = face_recognition.face_distance(persons_encoding, face_encoding)
-    for distance in distances:
-        if distance <= 0.6 and distance != 0:
-            print('match!')
+    person_image.encoding = face_encoding
+    person_images.append(person_image)
 
+groups = []
+
+while person_images:
+    current_person_image = person_images.pop()
+
+    have_group = False
+
+    for group in groups:
+        group_person_image = group[0]
+
+        distance = face_recognition.face_distance([group_person_image.encoding], current_person_image.encoding)[0]
+        if distance <= 0.55:
+            group.append(current_person_image)
+            have_group = True
+
+    if not have_group:
+        groups.append([current_person_image])
+
+
+for i, group in enumerate(groups):
+    if not os.path.exists(f'Persons/group{i+1}'):
+        os.mkdir(f'Persons/group{i+1}')
+
+    for j, person in enumerate(group):
+        person_image = person.image
+        pil_image = Image.fromarray(person_image)
+        pil_image.save(f'Persons/group{i+1}/{j}.jpg')
+
+files = glob.glob('Persons/*.jpg')
+for file in files:
+    os.remove(file)
