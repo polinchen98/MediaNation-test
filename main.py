@@ -3,6 +3,12 @@ from PIL import Image
 import face_recognition
 import os
 from collections import deque
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--folder', dest='folder', type=str, help='input folder', required=True)
+args = parser.parse_args()
 
 
 class PersonImage:
@@ -13,10 +19,10 @@ class PersonImage:
 if not os.path.exists('Persons'):
     os.mkdir('Persons')
 
-photos = os.listdir('photos')
+photos = os.listdir(args.folder)
 
 for i, photo in enumerate(photos):
-    image = face_recognition.load_image_file(f'photos/{photo}')
+    image = face_recognition.load_image_file(f'{args.folder}/{photo}')
     face_locations = face_recognition.face_locations(image)
 
     print("I found {} face(s) in this photograph.".format(len(face_locations)))
